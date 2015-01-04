@@ -31,12 +31,12 @@ static int item(int length_, int sym_, int dir_, int s_, int t_) {
 Item init_item(int length_, int item_index) {
     int cur = item_index;
     Item item;
-    item.sym = cur % (kDir * length_ * length_);
-    cur = cur / (kDir * length_ * length_);
-    item.dir = cur % (length_ * length_);
-    cur = cur / (length_ * length_);
-    item.s  = cur % (length_);
-    item.t  = cur / (length_);
+    item.sym = cur / (kDir * length_ * length_);
+    cur = cur % (kDir * length_ * length_);
+    item.dir = cur / (length_ * length_);
+    cur = cur % (length_ * length_);
+    item.s  = cur / (length_);
+    item.t  = cur % (length_);
     return item;
 }
 
@@ -100,12 +100,15 @@ void init(Chart *chart, int item) {
     chart->bps_[item] = init_backpointer(item, item, 1);
 }
 
+double score(Chart *chart, int item) {
+    return chart->scores_[item];
+}
+
 void set(Chart *chart,
          int item,
          int item1,
          int item2,
          double score) {
-    printf("setting: %d\n", item);
     /* int item_index1 = index(chart, item1); */
     /* int item_index2 = index(chart, item2); */
     if (chart->bps_[item1] == NULL || chart->bps_[item2] == NULL) {
@@ -121,9 +124,10 @@ void set(Chart *chart,
 
 void finish(Chart *chart,
             int item_index,
-            int *deps) {
+            double *deps) {
     BackPointer *bp = chart->bps_[item_index];
     Item item = init_item(chart->length_, item_index);
+    /* printf("finish %d %d\n", item.sym, item.dir); */
     if (bp->terminal) return;
     if (item.sym == Trap) {
         if (item.dir == Left) {
@@ -138,7 +142,7 @@ void finish(Chart *chart,
 
   /* private: */
 
-void parse(int n, double *input) {
+void parse(int n, double *input, double *argmax) {
     Chart chart = init_chart(n);
     int s, k, r;
     for (s = 0; s <= n; ++s) {
@@ -147,14 +151,14 @@ void parse(int n, double *input) {
             init(&chart, item(n+1, Tri, Left, s, s));
         }
     }
-    printf("chart size: %d\n", n);
+    /* printf("chart size: %d\n", n); */
     for (k = 1; k <= n; ++k) {
         for (s = 0; s <= n; s++) {
             int t = k + s;
             if (t > n) break;
 
-            double score1 = input[t * n + s];
-            double score2 = input[s * n + t];
+            double score1 = input[t * (n+1) + s];
+            double score2 = input[s * (n+1) + t];
 
             for (r = s; r < t; ++r) {
                 if (s != 0) {
@@ -187,32 +191,29 @@ void parse(int n, double *input) {
             }
         }
     }
-    int *deps = malloc((n+1)*sizeof(*deps));
-    finish(&chart, item(n+1, Tri, Right, 0, n), deps);
+    double scor = score(&chart, item(n+1, Tri, Right, 0, n));
+    /* printf("finishing %f\n", scor); */
+    finish(&chart, item(n+1, Tri, Right, 0, n), argmax);
+
 }
 
 #endif /* PARSER_H */
 
-static int nn_(Parser_updateOutput)(lua_State *L)
+static int parse_(Parser_updateOutput)(lua_State *L)
 {
     THTensor *input = luaT_checkudata(L, 2, torch_Tensor);
-    THTensor *output = luaT_getfieldcheckudata(L, 1, "output", torch_Tensor);
+    THTensor *target = luaT_checkudata(L, 3, torch_Tensor);
+    THTensor *argmax = luaT_getfieldcheckudata(L, 1, "argmax", torch_Tensor);
 
-    int size = THTensor_(size)(input, 1);
+    int size = THTensor_(size)(target, 0);
 
-    THLongStorage *dim;
-    long i;
-    dim = THLongStorage_newWithSize(1);
-    dim->data[0] = size;
-    THTensor_(resize)(output, dim, NULL);
-    THLongStorage_free(dim);
-
-    TH_TENSOR_APPLY(real, input, \
-                     parse(size-1, input_data); )
+    /* printf("Size %d\n", size); */
+    THTensor_(resizeAs)(argmax, target);
+    parse(size-1, THTensor_(data)(input), THTensor_(data)(argmax));
     return 1;
 }
 
-static int nn_(Parser_updateGradInput)(lua_State *L)
+static int parse_(Parser_updateGradInput)(lua_State *L)
 {
     THTensor *input = luaT_checkudata(L, 2, torch_Tensor);
     THTensor *gradOutput = luaT_checkudata(L, 3, torch_Tensor);
@@ -225,16 +226,16 @@ static int nn_(Parser_updateGradInput)(lua_State *L)
             return 1;
 }
 
-static const struct luaL_Reg nn_(Parser__) [] = {
-    {"Parser_updateOutput", nn_(Parser_updateOutput)},
-    {"Parser_updateGradInput", nn_(Parser_updateGradInput)},
+static const struct luaL_Reg parse_(Parser__) [] = {
+    {"Parser_updateOutput", parse_(Parser_updateOutput)},
+    {"Parser_updateGradInput", parse_(Parser_updateGradInput)},
     {NULL, NULL}
 };
 
-static void nn_(Parser_init)(lua_State *L)
+static void parse_(Parser_init)(lua_State *L)
 {
     luaT_pushmetatable(L, torch_Tensor);
-    luaT_registeratname(L, nn_(Parser__), "nn");
+    luaT_registeratname(L, parse_(Parser__), "parse");
     lua_pop(L,1);
 }
 

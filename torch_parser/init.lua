@@ -3,5 +3,6 @@ require('nn')
 require('libparse')
 
 include('Parser.lua')
-
-nn.Parser():forward(torch.Tensor({{1,2},{1,2}}))
+include('Util.lua')
+-- include('Test.lua')
+-- test_parse()
