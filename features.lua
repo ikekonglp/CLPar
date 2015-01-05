@@ -132,7 +132,6 @@ function features_mat(sent, parts, offsets, features)
    local dir = HEAD:ge(MOD):long()
    local distance = (HEAD - MOD):apply(bucket):long()
    local e = torch.ones(parts:size(1)):long()
-   -- local features = torch.ones(#offsets, parts:size(1)):long()
 
    features:zero()
    s = feature_state.make(offsets, features, parts:size(1))

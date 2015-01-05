@@ -4,11 +4,27 @@ require('parse')
 require('features')
 require('sparse_lookup')
 
-
+-- This is the standard linear feature model.
 function make_model()
    local scorer = nn.Sequential()
+   -- This is just a lookup table.
    scorer:add(nn.SparseUpdateLookupTable(featureLimit, 1))
    scorer:add(nn.Sum(2))
+   return scorer
+end
+
+-- This is a sample of another non-linear scorer
+-- where the score is dot product of the embeddings of head and modifier.
+-- Instead of passing in features we would do forward({head, mod}).
+function make_model_dot(dict)
+   local scorer = nn.Sequential()
+   local par = nn.ParallelTable()
+   score:add(par)
+   -- Modifier
+   par:add(nn.LookupTable(dict.num_words))
+   -- Head
+   par:add(nn.LookupTable(dict.num_words))
+   score:add(nn.DotProduct())
    return scorer
 end
 
@@ -31,7 +47,7 @@ end
 function main()
    -- Read sentence
    local sentences, dict =
-      read_conll("/home/srush/data/wsj/converted", 10000)
+      read_conll("/home/srush/data/wsj/converted", 40000)
 
    -- Standard sparse scorer.
    local scorer = make_model()
@@ -48,12 +64,13 @@ function main()
       for i = 1, #sentences do
          local sent = sentences[i]
 
-         if #sent < 20 then
+         if #sent < 50 then
             l0 = os.clock()
             local input, target = make_example(sent, dict)
             la = os.clock()
             -- print("make", la - l0)
 
+            -- A little bit of caching to speed up features.
             local parts
             if parts_cache[target:size(1)] then
                parts = parts_cache[target:size(1)].parts
@@ -67,6 +84,7 @@ function main()
                features = obj.features
             end
             features_mat(input, parts, offsets, features)
+
             l1 = os.clock()
             -- print("parts", l1 - la)
 
@@ -88,7 +106,6 @@ function main()
             scorer:updateParameters(rate)
             l4 = os.clock()
             -- print("update", l4 - l3)
-
 
             -- Log
             total_sentences = total_sentences + 1
