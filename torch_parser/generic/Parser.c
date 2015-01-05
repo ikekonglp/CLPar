@@ -75,6 +75,22 @@ Chart init_chart(int n) {
     return chart;
 }
 
+void free_chart(Chart *chart) {
+    int total_size = chart->length_ * chart->length_ * kSym * kDir;
+    free(chart->scores_);
+
+
+    int i;
+    for (i = 0; i < total_size; ++i) {
+        if (chart->bps_[i] != NULL) {
+            free(chart->bps_[i]);
+        }
+    }
+    free(chart->bps_);
+    return chart;
+}
+
+
 /* class Chart { */
 /*   public: */
 /*     Chart(int n) { */
@@ -194,7 +210,7 @@ void parse(int n, double *input, double *argmax) {
     double scor = score(&chart, item(n+1, Tri, Right, 0, n));
     /* printf("finishing %f\n", scor); */
     finish(&chart, item(n+1, Tri, Right, 0, n), argmax);
-
+    free_chart(&chart);
 }
 
 #endif /* PARSER_H */
