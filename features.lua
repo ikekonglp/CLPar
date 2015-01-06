@@ -77,6 +77,7 @@ function feature_templates(dict)
 end
 
 function bucket(dist)
+   dist = math.abs(dist)
    if dist == 1 then
       return 1
    elseif dist == 2 then
@@ -114,15 +115,14 @@ function features_mat(sent, parts, offsets, features)
    local head_tags = POS:index(1, HEAD)
    local mod_tags = POS:index(1, MOD)
 
-
    local modl = (MOD-1)
    modl[modl:le(1)] = 1
    local modr = (MOD+1)
-   modr[modr:ge(n)] = n
+   modr[modr:ge(n)] = 1
    local headl = (HEAD-1)
    headl[headl:le(1)] = 1
    local headr = (HEAD+1)
-   headr[headr:ge(n)] = n
+   headr[headr:ge(n)] = 1
 
    local head_l_tags = POS:index(1, headl)
    local head_r_tags = POS:index(1, headr)
@@ -168,35 +168,4 @@ function features_mat(sent, parts, offsets, features)
    -- print(features)
    features:apply(function(a) return math.abs(a) % (featureLimit-1) + 1; end)
 
-end
-
-
--- Features
-function features(sent, parts, offsets)
-   local WORD = 1
-   local POS = 2
-   local HEAD = 1
-   local MOD = 2
-
-   local features = torch.zeros(parts:size(1), #offsets):long()
-   -- print(parts)
-   for i = 1, parts:size(1) do
-      s = feature_state.make(offsets, features[i])
-      feature_state.inc(s, sent[WORD][parts[i][HEAD]], 1, 1, 1)
-      feature_state.inc(s, sent[WORD][parts[i][MOD]], 1, 1, 1)
-      feature_state.inc(s, sent[POS][parts[i][HEAD]], 1, 1, 1)
-      feature_state.inc(s, sent[POS][parts[i][MOD]], 1, 1, 1)
-      feature_state.inc(s, sent[WORD][parts[i][HEAD]], sent[POS][parts[i][HEAD]], 1, 1)
-      feature_state.inc(s, sent[WORD][parts[i][MOD]], sent[POS][parts[i][MOD]], 1, 1)
-
-      feature_state.inc(s, sent[WORD][parts[i][HEAD]], sent[WORD][parts[i][MOD]], 1, 1)
-      feature_state.inc(s, sent[WORD][parts[i][HEAD]], sent[POS][parts[i][MOD]], 1, 1)
-      feature_state.inc(s, sent[POS][parts[i][HEAD]], sent[WORD][parts[i][MOD]], 1, 1)
-      feature_state.inc(s, sent[POS][parts[i][HEAD]], sent[POS][parts[i][MOD]], 1, 1)
-      feature_state.inc(s, sent[WORD][parts[i][HEAD]], sent[POS][parts[i][HEAD]],
-                        sent[POS][parts[i][MOD]], 1)
-      feature_state.inc(s, sent[WORD][parts[i][MOD]], sent[POS][parts[i][HEAD]],
-                        sent[POS][parts[i][MOD]], 1)
-   end
-   return features
 end

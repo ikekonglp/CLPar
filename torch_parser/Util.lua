@@ -123,8 +123,8 @@ function read_conll(fname, limit)
    dict.index_to_tag = {}
    dict.tag_to_index = {}
 
-   dict.num_words = 0
-   dict.num_tags = 0
+   dict.num_words = 1
+   dict.num_tags = 1
    sent = {}
    for line in f:lines() do
       if limit ~= nil and #sentences > limit then
