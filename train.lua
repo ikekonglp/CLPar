@@ -4,11 +4,14 @@ require('parse')
 require('features')
 require('sparse_lookup')
 require('PairwiseDot')
+require('optim')
 
 -- This is the standard linear feature model.
 function make_model()
    local scorer = nn.Sequential()
    -- This is just a lookup table.
+   lookup = nn.SparseUpdateLookupTable(featureLimit, 1)
+   lookup.weight:zero()
    scorer:add(nn.SparseUpdateLookupTable(featureLimit, 1))
    scorer:add(nn.Sum(2))
    return scorer
@@ -55,13 +58,14 @@ function make_example(sent, dict)
 
    -- The root word.
    input[1][1] = 1
-   input[1][2] = 1
+   input[2][1] = 1
    target[1] = 1
    for j = 1, #sent do
       input[1][j+1] = dict.symbol_to_index[sent[j].word] or 1
       input[2][j+1] = dict.tag_to_index[sent[j].tag]
       target[j+1] = sent[j].head + 1
    end
+
    return input, target
 end
 
@@ -201,4 +205,5 @@ function test()
    end
 end
 
-main()
+-- main()
+test()

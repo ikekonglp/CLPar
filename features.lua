@@ -4,7 +4,6 @@ featureLimit = 100000000
 -- Feature states.
 offset = {}
 function offset.make(sizes)
-
    local offset = {}
    offset.sizes = sizes
 
@@ -64,6 +63,12 @@ function feature_templates(dict)
                          {dict.num_tags, dict.num_tags, dir, distance},
                          {dict.num_words, dict.num_tags, dict.num_tags, dir, distance},
                          {dict.num_words, dict.num_tags, dict.num_tags, dir, distance},
+
+                         {dict.num_tags, dict.num_tags, dict.num_tags, dir, distance},
+                         {dict.num_tags, dict.num_tags, dict.num_tags, dir, distance},
+                         {dict.num_tags, dict.num_tags, dict.num_tags, dir, distance},
+                         {dict.num_tags, dict.num_tags, dict.num_tags, dir, distance},
+
                          {dict.num_tags, dict.num_tags, dict.num_tags, dict.num_tags, dir, distance},
                          {dict.num_tags, dict.num_tags, dict.num_tags, dict.num_tags, dir, distance},
                          {dict.num_tags, dict.num_tags, dict.num_tags, dict.num_tags, dir, distance},
@@ -100,7 +105,7 @@ function bucket(dist)
 end
 
 function features_mat(sent, parts, offsets, features)
-   local n = sent:size(1)
+   local n = sent:size(2)
 
    local WORD = sent[1]
    local POS = sent[2]
@@ -123,6 +128,8 @@ function features_mat(sent, parts, offsets, features)
    headl[headl:le(1)] = 1
    local headr = (HEAD+1)
    headr[headr:ge(n)] = 1
+
+   -- print(n, headl, HEAD, headr)
 
    local head_l_tags = POS:index(1, headl)
    local head_r_tags = POS:index(1, headr)
@@ -154,6 +161,12 @@ function features_mat(sent, parts, offsets, features)
                         {head_tags, mod_tags, ex1, ex2},
                         {head_words, mod_tags, head_tags, ex1, ex2},
                         {mod_words, mod_tags, head_tags, ex1, ex2},
+
+                        {mod_l_tags, mod_tags, head_tags, ex1, ex2},
+                        {mod_r_tags, mod_tags,  head_tags, ex1, ex2},
+                        {mod_tags, head_l_tags, head_tags, ex1, ex2},
+                        {mod_tags, head_r_tags, head_tags, ex1, ex2},
+
                         {mod_l_tags, mod_tags, head_l_tags, head_tags, ex1, ex2},
                         {mod_r_tags, mod_tags, head_l_tags, head_tags, ex1, ex2},
                         {mod_l_tags, mod_tags, head_r_tags, head_tags, ex1, ex2},

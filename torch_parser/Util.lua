@@ -153,7 +153,7 @@ function read_conll(fname, limit)
          if dict.tag_to_index[tag] == nil then
             dict.num_tags = dict.num_tags + 1
             dict.tag_to_index[tag] = dict.num_tags
-            dict.index_to_symbol[dict.num_tags] = tag
+            dict.index_to_tag[dict.num_tags] = tag
          end
       end
    end
