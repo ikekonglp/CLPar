@@ -12,7 +12,8 @@ function make_model()
    -- This is just a lookup table.
    lookup = nn.SparseUpdateLookupTable(featureLimit, 1)
    lookup.weight:zero()
-   scorer:add(nn.SparseUpdateLookupTable(featureLimit, 1))
+   scorer:add(lookup)
+   -- 2 just means sum the column (1 means sum the row)
    scorer:add(nn.Sum(2))
    return scorer
 end
@@ -57,6 +58,7 @@ function make_example(sent, dict)
    local target = torch.zeros(#sent+1):double()
 
    -- The root word.
+   -- root word and pos index -> 1
    input[1][1] = 1
    input[2][1] = 1
    target[1] = 1
@@ -70,9 +72,11 @@ function make_example(sent, dict)
 end
 
 function main()
+   print ("start training")
    -- Read sentence
    local sentences, dict =
-      read_conll("/home/srush/data/wsj/converted", 40000)
+      -- read_conll("/home/srush/data/wsj/converted", 40000)
+      read_conll("/home/lingpenk/Data/PTB/PTB_YM/train_final", 40000)
 
    -- Standard sparse scorer.
    local scorer = make_model()
@@ -94,7 +98,11 @@ function main()
 
          if #sent < 100 then
             l0 = os.clock()
+            -- input is two row refers to word and coarse pos index
+            -- target is the gold output (+1 indexing)
+
             local input, target = make_example(sent, dict)
+
             la = os.clock()
             -- print("make", la - l0)
 
@@ -111,11 +119,24 @@ function main()
                parts = obj.parts
                features = obj.features
             end
+
+            -- features:
+            --         . . . .  feature_i . . . .
+            --  .
+            --  .
+            -- part_i
+            --  .
+            --  .
+
             features_mat(input, parts, offsets, features)
+
+            -- fill the feature matrix with real features for each part
 
             l1 = os.clock()
             -- print("parts", l1 - la)
 
+            -- forward the feature tensor as input
+            -- the size of the tensor is (n^2) * feature_lenght_represented by long
             local arc_scores = scorer:forward(features:t())
 
             local out = arc_scores
@@ -131,6 +152,8 @@ function main()
             l2 = os.clock()
             -- print("features", l2 - l1)
 
+            -- the parser here sounds like a module in nn, but it's acutally running a black box inside
+            -- which gives the decoded result
             local loss = parser:forward(out, target)
             total_loss = total_loss + loss
             l3 = os.clock()
@@ -138,6 +161,7 @@ function main()
 
             local deriv = parser:backward(out, target)
 
+            -- perform the backward and update the thing as usual
             -- Update (SGD)
             scorer:zeroGradParameters()
             -- local d = combine:backward({arc_scores, arc_combine}, deriv)
@@ -155,7 +179,8 @@ function main()
             end
          end
       end
-      torch.save("/tmp/model", scorer)
+      -- torch.save("/tmp/model", scorer)
+      torch.save("ptbada.model", scorer)
       -- torch.save("/tmp/mix_model.2", scorer2)
       print("loss", total_loss / total_sentences)
    end
@@ -165,13 +190,15 @@ function test()
 
    -- Read sentence
    local _, dict =
-      read_conll("/home/srush/data/wsj/converted", 40000)
+      -- read_conll("/home/srush/data/wsj/converted", 40000)
+      read_conll("/home/lingpenk/Data/PTB/PTB_YM/train_final", 40000)
 
    local sentences, _ =
-      read_conll("/home/srush/Projects/PhraseDep/corpora/proj.full.dev.tbttagged.predict", 40000)
+      -- read_conll("/home/srush/Projects/PhraseDep/corpora/proj.full.dev.tbttagged.predict", 40000)
+      read_conll("/home/lingpenk/Data/PTB/PTB_YM/dev_stg", 40000)
 
    -- Standard sparse scorer.
-   local scorer = torch.load("/tmp/model")
+   local scorer = torch.load("ptbada.model")
    local parser = nn.Parser()
 
    local offsets = feature_templates(dict)
