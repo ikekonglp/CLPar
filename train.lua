@@ -238,7 +238,7 @@ function main()
 
             scorer2:zeroGradParameters()
             scorer2:backward({{head_words, head_pos}, {mod_words, mod_pos}}, criterion:backward(scorer2.output, gold))
-            scorer2:updateParameters(0.4)
+            scorer2:updateParameters(0.1)
 
             -- print (out,gold)
 
@@ -291,10 +291,9 @@ function main()
                print(total_sentences, total_loss / total_sentences)
             end
          end
-         torch.save("ptbada.model.epoch" .. epochs, scorer2)
       end
       -- torch.save("/tmp/model", scorer)
-      torch.save("ptbada.model", scorer2)
+      torch.save("ptbada.model" .. epochs, scorer2)
       -- torch.save("/tmp/mix_model.2", scorer2)
       print("loss", total_loss / total_sentences)
    end
